@@ -1,0 +1,751 @@
+import java.io.*;
+import java.util.*;
+
+public class homework {
+
+	public static String type;
+	public static int length = 8;
+	public static String colorPlay;
+	public static double time;
+	public static chess[][] inBoard = new chess[length][length];
+	public static char[] letter = new char[] { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' };
+	public static boolean wWin = false, bWin = false, draw = false;
+	public static int count = 0;
+	public static boolean changeC = false;
+	public static int[][] counter = new int[length][length];
+	public static double alpha = -999999999;
+	public static double beta = 999999999;
+
+	static class tuple {
+		double d;
+		chess[][] c;
+
+		public tuple(double d, chess[][] c) {
+			this.d = d;
+			this.c = c;
+		}
+	}
+
+	static class ans {
+		point s;
+		point e;
+
+		public ans(point s, point e) {
+			this.s = s;
+			this.e = e;
+		}
+	}
+
+	static class tmove {
+		Map<homework.point, ArrayList<homework.point>> map;
+		ArrayList<homework.point> path;
+
+		public tmove(Map<homework.point, ArrayList<homework.point>> map, ArrayList<homework.point> path) {
+			this.map = map;
+			this.path = path;
+		}
+	}
+
+	static class lc {
+		ArrayList<homework.point> list;
+		point cur;
+		ArrayList<homework.point> res;
+
+		public lc(ArrayList<homework.point> list, point cur, ArrayList<homework.point> res) {
+			this.list = list;
+			this.cur = cur;
+			this.res = res;
+		}
+	}
+
+	static class chess {
+		int row;
+		char col;
+		int rRow;
+		int rCol;
+		String color;
+		boolean king;
+
+		public chess(int rRow, int rCol, int row, char col, String color, boolean king) {
+			this.rRow = rRow;
+			this.rCol = rCol;
+			this.row = row;
+			this.col = col;
+			this.color = color;
+			this.king = king;
+		}
+	}
+
+	static class point {
+		int row;
+		int col;
+
+		public point(int row, int col) {
+			this.row = row;
+			this.col = col;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+
+			if (o == this)
+				return true;
+			if (!(o instanceof point)) {
+				return false;
+			}
+			point user = (point) o;
+			return row == user.row && col == user.col;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(row, col);
+		}
+
+	}
+
+	public static void main(String[] args) throws IOException {
+		readMap("input.txt");
+		FileWriter ouputWriter = new FileWriter("output.txt");
+		// printBoardS(inBoard);
+		if (!wWin && !bWin && !draw) {
+			if (colorPlay.equals("w")) {
+				tuple t = minimax(inBoard, 5, false, alpha, beta);
+				printBoardW(t.c, ouputWriter);
+				if (!wWin && !bWin && !draw) {
+					printBoard(t.c);
+				}
+
+			} else {
+				tuple t = minimax(inBoard, 5, true, alpha, beta);
+				printBoardW(t.c, ouputWriter);
+				if (!wWin && !bWin && !draw) {
+					printBoard(t.c);
+				}
+			}
+			if (wWin) {
+				System.out.println("WHITE Win");
+				ouputWriter.write("WHITE Win");
+			}
+			if (bWin) {
+				System.out.println("BLACK Win");
+				ouputWriter.write("BLACK Win");
+			}
+			if (draw) {
+				System.out.println("Draw");
+				ouputWriter.write("Draw");
+			}
+		}
+		if (type.equals("GAME")) {
+			while (!wWin && !bWin && !draw) {
+				readMap("playdata.txt");
+				// printBoardS(inBoard);
+				if (colorPlay.equals("w")) {
+					tuple t = minimax(inBoard, 6, false, alpha, beta);
+					printBoardW(t.c, ouputWriter);
+					if (!wWin && !bWin && !draw) {
+						printBoard(t.c);
+					}
+				} else {
+					tuple t = minimax(inBoard, 6, true, alpha, beta);
+					printBoardW(t.c, ouputWriter);
+					if (!wWin && !bWin && !draw) {
+						printBoard(t.c);
+					}
+				}
+				if (wWin) {
+					System.out.println("WHITE Win");
+					ouputWriter.write("WHITE Win");
+				}
+				if (bWin) {
+					System.out.println("BLACK Win");
+					ouputWriter.write("BLACK Win");
+				}
+				if (draw) {
+					System.out.println("Draw");
+					ouputWriter.write("Draw");
+				}
+			}
+		}
+		ouputWriter.close();
+
+	}
+
+	private static void printBoardS(homework.chess[][] c) {
+		System.out.println(type);
+		System.out.println(colorPlay);
+		System.out.println(time);
+		for (int i = 0; i < length; i++) {
+			for (int j = 0; j < length; j++) {
+				if (c[i][j].king) {
+					System.out.print(c[i][j].color.toUpperCase());
+				} else {
+					System.out.print(c[i][j].color);
+				}
+			}
+			System.out.println();
+		}
+
+	}
+
+	private static void printBoard(chess[][] c) throws IOException {
+		System.out.println(type);
+		if (colorPlay.equals("w")) {
+			System.out.println("BLACK");
+		} else {
+			System.out.println("WHITE");
+		}
+		System.out.println(time);
+		for (int i = 0; i < length; i++) {
+			for (int j = 0; j < length; j++) {
+				if (c[i][j].king) {
+					System.out.print(c[i][j].color.toUpperCase());
+				} else {
+					System.out.print(c[i][j].color);
+				}
+			}
+			System.out.println();
+		}
+		String str = "playdata.txt";
+		FileWriter writer = new FileWriter(str);
+		writer.write(type);
+		writer.write(System.getProperty("line.separator"));
+		if (colorPlay.equals("w")) {
+			writer.write("BLACK");
+		} else {
+			writer.write("WHITE");
+		}
+		writer.write(System.getProperty("line.separator"));
+		writer.write(Double.toString(time));
+		writer.write(System.getProperty("line.separator"));
+		for (int i = 0; i < length; i++) {
+			for (int j = 0; j < length; j++) {
+				if (c[i][j].king) {
+					writer.write(c[i][j].color.toUpperCase());
+				} else {
+					writer.write(c[i][j].color);
+				}
+			}
+			writer.write(System.getProperty("line.separator"));
+		}
+		writer.close();
+	}
+
+	private static boolean checkDraw(int[][] c) {
+		for (int i = 0; i < length; i++) {
+			for (int j = 0; j < length; j++) {
+				if (c[i][j] == 3) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static void printBoardW(chess[][] c, FileWriter ouputWriter) throws IOException {
+		if (c == null) {
+			if (colorPlay.equals("b")) {
+				wWin = true;
+			}
+			if (colorPlay.equals("w")) {
+				bWin = true;
+			}
+		} else {
+			boolean jump = false;
+			ans a = new ans(null, null);
+			if (colorPlay.equals("w")) {
+				a = compareW(c);
+			} else {
+				a = compareB(c);
+			}
+			point start = a.s;
+			Map<homework.point, ArrayList<homework.point>> map = getValidMove(inBoard[a.s.row][a.s.col], inBoard).map;
+			ArrayList<homework.point> path = getValidMove(inBoard[a.s.row][a.s.col], inBoard).path;
+			path.add(0, new point(start.row, start.col));
+			point end = null;
+			for (point p : map.keySet()) {
+				if (p.row == a.e.row && p.col == a.e.col) {
+					end = p;
+					break;
+				}
+			}
+			counter[end.row][end.col]++;
+
+//		if (checkDraw(counter)) {
+//			draw = true;
+//		}
+
+			if (path.size() == 1) {
+				jump = false;
+				if (!changeC) {
+					count++;
+					if (count > 100) {
+						draw = true;
+					}
+				} else {
+					count = 0;
+				}
+			} else {
+				jump = true;
+			}
+			if (jump) {
+				for (int i = 0; i < path.size() - 1; i++) {
+					System.out.println("J" + " " + letter[path.get(i).col] + (8 - path.get(i).row) + " "
+							+ letter[path.get(i + 1).col] + (8 - path.get(i + 1).row));
+					ouputWriter.write("J" + " " + letter[path.get(i).col] + (8 - path.get(i).row) + " "
+							+ letter[path.get(i + 1).col] + (8 - path.get(i + 1).row));
+					ouputWriter.write(System.getProperty("line.separator"));
+				}
+			} else {
+				System.out.println(
+						"E" + " " + letter[start.col] + (8 - start.row) + " " + letter[end.col] + (8 - end.row));
+				ouputWriter
+						.write("E" + " " + letter[start.col] + (8 - start.row) + " " + letter[end.col] + (8 - end.row));
+				ouputWriter.write(System.getProperty("line.separator"));
+			}
+		}
+	}
+
+	private static homework.ans compareB(homework.chess[][] board1) {
+		ans a = new ans(null, null);
+		for (int i = 0; i < length; i++) {
+			for (int j = 0; j < length; j++) {
+				if (inBoard[i][j].color.equals(".") && board1[i][j].color.equals("b")) {
+					a.e = new point(i, j);
+				} else if (inBoard[i][j].color.equals("b") && board1[i][j].color.equals(".")) {
+					a.s = new point(i, j);
+				}
+			}
+		}
+		return a;
+	}
+
+	private static ans compareW(homework.chess[][] board1) {
+		ans a = new ans(null, null);
+		for (int i = 0; i < length; i++) {
+			for (int j = 0; j < length; j++) {
+				if (!inBoard[i][j].color.equals("w") && board1[i][j].color.equals("w")) {
+					a.e = new point(i, j);
+				} else if (inBoard[i][j].color.equals("w") && !board1[i][j].color.equals("w")) {
+					a.s = new point(i, j);
+				}
+			}
+		}
+		return a;
+	}
+
+	private static chess[][] readMap(String name) {
+		Scanner scanner = null;
+		try {
+			String str = name;
+			scanner = new Scanner(new File(str));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		type = scanner.nextLine();
+		String temp = scanner.nextLine();
+		if (temp.equals("WHITE")) {
+			colorPlay = "w";
+		} else {
+			colorPlay = "b";
+		}
+		time = Double.parseDouble(scanner.nextLine());
+		for (int i = 0; i < length; i++) {
+			String s = scanner.nextLine();
+			for (int j = 0; j < length; j++) {
+				char ch = s.charAt(j);
+				if (ch == '.') {
+					chess c = new chess(i, j, 8 - i, letter[j], ".", false);
+					inBoard[i][j] = c;
+				} else if (ch == 'b') {
+					// icb++;
+					chess c = new chess(i, j, 8 - i, letter[j], "b", false);
+					inBoard[i][j] = c;
+				} else if (ch == 'w') {
+					// icw++;
+					chess c = new chess(i, j, 8 - i, letter[j], "w", false);
+					inBoard[i][j] = c;
+				} else if (ch == 'B') {
+					// icb++;
+					// icbk++;
+					chess c = new chess(i, j, 8 - i, letter[j], "b", true);
+					inBoard[i][j] = c;
+				} else if (ch == 'W') {
+					// icw++;
+					// icwk++;
+					chess c = new chess(i, j, 8 - i, letter[j], "w", true);
+					inBoard[i][j] = c;
+				}
+			}
+		}
+		return inBoard;
+	}
+
+	private static boolean checkWin(chess[][] c) {
+		int b = 0, w = 0;
+		for (int i = 0; i < length; i++) {
+			for (int j = 0; j < length; j++) {
+				if (c[i][j].color.equals("b") || c[i][j].color.equals("B")) {
+					b++;
+				} else if (c[i][j].color.equals("w") || c[i][j].color.equals("W")) {
+					w++;
+				}
+			}
+		}
+		if (w == 0) {
+			System.out.println("check2");
+			bWin = true;
+			return true;
+		}
+		if (b == 0) {
+			wWin = true;
+			return true;
+		}
+		return false;
+	}
+
+//--------------------------------------------------------------------------------minimax---------------------------------------------------------------------------
+	private static tmove getValidMove(chess c, chess[][] board) {
+		ArrayList<point> path = new ArrayList<>();
+		Map<point, ArrayList<point>> move = new HashMap<>();
+		if (c.color.equals("b") && c.king) {
+			ArrayList<point> jump = new ArrayList<>();
+			checkLeft(c.rRow + 1, Math.min(c.rRow + 3, length), 1, c.color, c.rCol - 1, jump, board, path, move);
+			checkRight(c.rRow + 1, Math.min(c.rRow + 3, length), 1, c.color, c.rCol + 1, jump, board, path, move);
+			checkLeft(c.rRow - 1, Math.max(c.rRow - 3, -1), -1, c.color, c.rCol - 1, jump, board, path, move);
+			checkRight(c.rRow - 1, Math.max(c.rRow - 3, -1), -1, c.color, c.rCol + 1, jump, board, path, move);
+			jump.clear();
+		} else if (c.color.equals("b")) {
+			ArrayList<point> jump = new ArrayList<>();
+			checkLeft(c.rRow + 1, Math.min(c.rRow + 3, length), 1, c.color, c.rCol - 1, jump, board, path, move);
+			checkRight(c.rRow + 1, Math.min(c.rRow + 3, length), 1, c.color, c.rCol + 1, jump, board, path, move);
+			jump.clear();
+		}
+		if (c.color.equals("w") && c.king) {
+			ArrayList<point> jump = new ArrayList<>();
+			checkLeft(c.rRow + 1, Math.min(c.rRow + 3, length), 1, c.color, c.rCol - 1, jump, board, path, move);
+			checkRight(c.rRow + 1, Math.min(c.rRow + 3, length), 1, c.color, c.rCol + 1, jump, board, path, move);
+			checkLeft(c.rRow - 1, Math.max(c.rRow - 3, -1), -1, c.color, c.rCol - 1, jump, board, path, move);
+			checkRight(c.rRow - 1, Math.max(c.rRow - 3, -1), -1, c.color, c.rCol + 1, jump, board, path, move);
+			jump.clear();
+		} else if (c.color.equals("w")) {
+			ArrayList<point> jump = new ArrayList<>();
+			checkLeft(c.rRow - 1, Math.max(c.rRow - 3, -1), -1, c.color, c.rCol - 1, jump, board, path, move);
+			checkRight(c.rRow - 1, Math.max(c.rRow - 3, -1), -1, c.color, c.rCol + 1, jump, board, path, move);
+			jump.clear();
+		}
+		tmove tm = new tmove(move, path);
+		return tm;
+	}
+
+	private static Map<homework.point, ArrayList<homework.point>> checkRight(int start, int end, int k, String color,
+			int right, ArrayList<homework.point> jump, homework.chess[][] board, ArrayList<homework.point> path,
+			Map<homework.point, ArrayList<homework.point>> move) {
+		ArrayList<point> visit = new ArrayList<>();
+		for (int i = start; i != end; i += k) {
+			if (right >= length) {
+				break;
+			}
+			chess cur = board[i][right];
+			if (cur.color.equals(".")) {
+				if (!jump.isEmpty() && visit.isEmpty()) {
+					break;
+				} else if (!jump.isEmpty() && !visit.isEmpty()) {
+					point p = new point(i, right);
+					if (checkKey(p, move) && move.get(p) != null) {
+						for (point pp : visit) {
+							if (!move.get(p).contains(pp)) {
+								move.get(p).add(pp);
+							}
+						}
+						for (point pp : jump) {
+							if (!move.get(p).contains(pp)) {
+								move.get(p).add(pp);
+							}
+						}
+					} else {
+						move.put(p, visit);
+						for (point pp : jump) {
+							if (!move.get(p).contains(pp)) {
+								move.get(p).add(pp);
+							}
+						}
+					}
+				} else {
+					point p = new point(i, right);
+					if (checkKey(p, move) && move.get(p) != null) {
+						for (point pp : visit) {
+							if (!move.get(p).contains(pp)) {
+								move.get(p).add(pp);
+							}
+						}
+					} else {
+						move.put(p, visit);
+					}
+				}
+
+				if (!visit.isEmpty()) {
+					path.add(new point(cur.rRow, cur.rCol));
+					jump = visit;
+
+					if (k == 1) {
+						checkLeft(cur.rRow + 1, Math.min(cur.rRow + 3, length), 1, color, right - 1, jump, board, path,
+								move);
+						checkRight(cur.rRow + 1, Math.min(cur.rRow + 3, length), 1, color, right + 1, jump, board, path,
+								move);
+					} else {
+						checkLeft(cur.rRow - 1, Math.max(cur.rRow - 3, -1), -1, color, right - 1, jump, board, path,
+								move);
+						checkRight(cur.rRow - 1, Math.max(cur.rRow - 3, -1), -1, color, right + 1, jump, board, path,
+								move);
+					}
+				}
+				break;
+			} else if (cur.color.equals(color)) {
+				break;
+			} else {
+				visit.add(new point(cur.rRow, cur.rCol));
+			}
+			right++;
+		}
+		// visit.clear();
+		return move;
+	}
+
+	private static Map<homework.point, ArrayList<homework.point>> checkLeft(int start, int end, int k, String color,
+			int left, ArrayList<homework.point> jump, homework.chess[][] board, ArrayList<homework.point> path,
+			Map<homework.point, ArrayList<homework.point>> move) {
+		ArrayList<point> visit = new ArrayList<>();
+		for (int i = start; i != end; i += k) {
+			if (left < 0) {
+				break;
+			}
+			chess cur = board[i][left];
+			if (cur.color.equals(".")) {
+				if (!jump.isEmpty() && visit.isEmpty()) {
+					break;
+				} else if (!jump.isEmpty() && !visit.isEmpty()) {
+					point p = new point(i, left);
+					if (checkKey(p, move) && move.get(p) != null) {
+						for (point pp : visit) {
+							if (!move.get(p).contains(pp)) {
+								move.get(p).add(pp);
+							}
+						}
+						for (point pp : jump) {
+							if (!move.get(p).contains(pp)) {
+								move.get(p).add(pp);
+							}
+						}
+					} else {
+						move.put(p, visit);
+						// move.get(p).addAll(jump);
+						for (point pp : jump) {
+							if (!move.get(p).contains(pp)) {
+								move.get(p).add(pp);
+							}
+						}
+					}
+				} else {
+					point p = new point(i, left);
+					if (checkKey(p, move) && move.get(p) != null) {
+						for (point pp : visit) {
+							if (!move.get(p).contains(pp)) {
+								move.get(p).add(pp);
+							}
+						}
+					} else {
+						move.put(p, visit);
+					}
+				}
+
+				if (!visit.isEmpty()) {
+					jump = visit;
+
+					path.add(new point(cur.rRow, cur.rCol));
+					if (k == 1) {
+						checkLeft(cur.rRow + 1, Math.min(cur.rRow + 3, length), 1, color, left - 1, jump, board, path,
+								move);
+						checkRight(cur.rRow + 1, Math.min(cur.rRow + 3, length), 1, color, left + 1, jump, board, path,
+								move);
+					} else {
+						checkLeft(cur.rRow - 1, Math.max(cur.rRow - 3, -1), -1, color, left - 1, jump, board, path,
+								move);
+						checkRight(cur.rRow - 1, Math.max(cur.rRow - 3, -1), -1, color, left + 1, jump, board, path,
+								move);
+					}
+				}
+				break;
+			} else if (cur.color.equals(color)) {
+				break;
+			} else {
+				visit.add(new point(cur.rRow, cur.rCol));
+			}
+			left--;
+		}
+		// visit.clear();
+		return move;
+	}
+
+	private static boolean checkKey(homework.point p, Map<homework.point, ArrayList<homework.point>> move) {
+		System.out.println("size:   " + move.keySet().size());
+		for (point t : move.keySet()) {
+			if (t.row == p.row && t.col == p.col) {
+				if (move.get(t) != null) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static tuple minimax(chess[][] cur, int depth, boolean max, double alpha, double beta) {
+		if (depth == 0) {
+			// System.out.println("check3 ");
+			tuple t = new tuple(score(cur), cur);
+			return t;
+		}
+		if (max) {
+			double maxScore = -999999999;
+			chess[][] mPos = null;
+			ArrayList<chess[][]> list = getMove(cur, "b");
+			for (chess[][] c : list) {
+				double score = minimax(c, depth - 1, false, alpha, beta).d;
+				maxScore = Math.max(score, maxScore);
+				alpha = Math.max(alpha, score);
+				if (beta < alpha) {
+					break;
+				}
+				if (score == maxScore) {
+					mPos = c;
+				}
+			}
+			tuple t = new tuple(maxScore, mPos);
+			list.clear();
+			return t;
+
+		} else {
+			double minScore = 999999999;
+			ArrayList<chess[][]> list = getMove(cur, "w");
+			chess[][] mPos = null;
+			for (chess[][] c : list) {
+				double score = minimax(c, depth - 1, true, alpha, beta).d;
+				minScore = Math.min(score, minScore);
+				beta = Math.min(beta, score);
+				if (beta < alpha) {
+					break;
+				}
+				if (score == minScore) {
+					mPos = c;
+				}
+			}
+			tuple t = new tuple(minScore, mPos);
+			list.clear();
+			return t;
+
+		}
+	}
+
+	private static double score(chess[][] c) {
+		int b = 0, w = 0, bk = 0, wk = 0;
+		for (int i = 0; i < length; i++) {
+			for (int j = 0; j < length; j++) {
+				if (c[i][j].color.equals("b")) {
+					b++;
+					if (c[i][j].king) {
+						bk++;
+					}
+				} else if (c[i][j].color.equals("w")) {
+					w++;
+					if (c[i][j].king) {
+						wk++;
+					}
+				}
+			}
+		}
+		return b - w + ((double) bk * .5 - (double) wk * .5);
+	}
+
+	private static ArrayList<chess[][]> getMove(chess[][] board1, String color) {
+		ArrayList<chess[][]> path = new ArrayList<>();
+		ArrayList<point> sameColor = getSameColor(board1, color);
+		for (int k = 0; k < sameColor.size(); k++) {
+			Map<homework.point, ArrayList<homework.point>> move = getValidMove(
+					board1[sameColor.get(k).row][sameColor.get(k).col], board1).map;
+			for (point pp : move.keySet()) {
+				// copy board
+				chess[][] temp = new chess[length][length];
+				for (int i = 0; i < length; i++) {
+					for (int j = 0; j < length; j++) {
+						temp[i][j] = new chess(board1[i][j].rRow, board1[i][j].rCol, board1[i][j].row, board1[i][j].col,
+								board1[i][j].color, board1[i][j].king);
+					}
+				}
+				temp = tempMove(temp[sameColor.get(k).row][sameColor.get(k).col], pp.row, pp.col, temp, move.get(pp));
+				path.add(temp);
+			}
+		}
+		sameColor.clear();
+		return path;
+	}
+
+	private static ArrayList<point> getSameColor(chess[][] board1, String color) {
+		ArrayList<point> sameColor = new ArrayList<>();
+		for (int i = 0; i < length; i++) {
+			for (int j = 0; j < length; j++) {
+				if (board1[i][j].color.equals(color)) {
+					sameColor.add(new point(i, j));
+				}
+			}
+		}
+		return sameColor;
+	}
+
+	private static chess[][] tempMove(chess c, int row, int col, chess[][] board1, ArrayList<homework.point> skip) {
+		chess temp = new chess(board1[c.rRow][c.rCol].rRow, board1[c.rRow][c.rCol].rCol, board1[c.rRow][c.rCol].row,
+				board1[c.rRow][c.rCol].col, board1[c.rRow][c.rCol].color, board1[c.rRow][c.rCol].king);
+		if (row == 0 || row == 7) {
+			temp.king = true;
+			changeC = true;
+		} else {
+			changeC = false;
+		}
+		board1[c.rRow][c.rCol] = board1[row][col];
+		c.rRow = row;
+		c.rCol = col;
+		c.row = 8 - row;
+		c.col = letter[col];
+		board1[c.rRow][c.rCol] = temp;
+		board1 = tempRemovePoint(skip, board1);
+		return board1;
+	}
+
+	private static chess[][] tempRemovePoint(ArrayList<homework.point> removed, chess[][] board1) {
+		for (int i = 0; i < removed.size(); i++) {
+			chess c = board1[removed.get(i).row][removed.get(i).col];
+			if (c.king) {
+				c.king = false;
+			}
+			if (!c.color.equals(".")) {
+				if (c.color.equals("w")) {
+					board1[removed.get(i).row][removed.get(i).col].color = ".";
+				} else if (c.color.equals("b")) {
+					board1[removed.get(i).row][removed.get(i).col].color = ".";
+				}
+			}
+		}
+		return board1;
+	}
+
+}
+//GAME
+//b
+//100.0
+//.b...b.W
+//..b...w.
+//...B...b
+//......w.
+//........
+//........
+//.B......
+//........
